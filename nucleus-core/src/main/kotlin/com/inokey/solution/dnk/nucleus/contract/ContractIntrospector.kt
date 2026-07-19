@@ -5,7 +5,6 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import org.springframework.core.io.support.ResourcePatternResolver
 import org.springframework.core.type.classreading.CachingMetadataReaderFactory
 import org.springframework.core.type.classreading.MetadataReaderFactory
-import org.springframework.stereotype.Component
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.primaryConstructor
 
@@ -38,7 +37,7 @@ data class ContractClassInfo(
  * Règle: un paramètre est **requis** s'il n'a pas de valeur par défaut
  * dans le primary constructor.
  */
-@Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnClass(name = ["org.springframework.core.type.classreading.MetadataReaderFactory"])
 class ContractIntrospector(
     @Value("\${multiplanner.contract.model-package:com.inokey.solution.dnk.multiplanner.contract.model}")
     private val modelPackage: String

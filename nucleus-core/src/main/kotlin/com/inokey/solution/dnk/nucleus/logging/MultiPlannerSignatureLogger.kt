@@ -6,7 +6,6 @@ import org.springframework.beans.factory.getBeansOfType
 import org.springframework.context.ApplicationContext
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.context.event.EventListener
-import org.springframework.stereotype.Component
 import org.springframework.web.method.HandlerMethod
 import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping
 
@@ -15,7 +14,6 @@ import org.springframework.web.reactive.result.method.annotation.RequestMappingH
  * Récupère tous les RequestMappingHandlerMapping depuis le contexte pour éviter
  * toute ambiguïté (actuator ajoute aussi ses propres mappings).
  */
-@Component
 class MultiPlannerSignatureLogger(
     private val applicationContext: ApplicationContext
 ) {

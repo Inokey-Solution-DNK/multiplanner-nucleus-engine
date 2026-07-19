@@ -16,15 +16,16 @@ import reactor.core.publisher.Mono
 /**
  * 🔧 Handler spécialisé pour les erreurs de désérialisation JSON / body reading.
  *
+ * Désactivé par défaut. Pour l'activer, définir `nucleus.error.json-handler.enabled=true`.
+ *
  * Responsabilités :
  * - Logger la **vraie cause** côté serveur (stacktrace complète)
  * - Exposer un message **utile mais safe** côté client (Postman/tests)
- * - Éviter de masquer les détails sous un generic "INVALID_INPUT"
+ * - Ne jamais exposer rejectedValue, le message Jackson brut, ou des données utilisateur
  *
  * Ordre d'exécution : ce handler s'exécute **avant** les handlers plus génériques
  * grâce à `@RestControllerAdvice` et l'ordre des `@ExceptionHandler`.
  */
-@RestControllerAdvice
 class NucleusJsonErrorHandler {
 
     private val logger = LoggerFactory.getLogger(NucleusJsonErrorHandler::class.java)
@@ -86,9 +87,9 @@ class NucleusJsonErrorHandler {
             }
         )
 
-        // Détails pour le client
+        // Détails pour le client (sans rejectedValue ni données utilisateur)
         val details = ex.fieldErrors.map { fe ->
-            "field='${fe.field}' rejected_value='${fe.rejectedValue}' : ${fe.defaultMessage}"
+            "field='${fe.field}': ${fe.defaultMessage}"
         }.take(5) // Limite à 5 pour ne pas noyer le client
 
         val body = ErrorResponse(

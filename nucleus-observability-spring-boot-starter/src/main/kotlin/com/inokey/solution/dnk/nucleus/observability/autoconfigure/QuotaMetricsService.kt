@@ -5,7 +5,6 @@ import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -23,7 +22,6 @@ import java.util.concurrent.atomic.AtomicLong
  * - multiplanner_llm_tokens_total : Tokens LLM utilisés
  * - multiplanner_circuit_breaker_state : État des circuit breakers
  */
-@Component
 class QuotaMetricsService(
     private val meterRegistry: MeterRegistry
 ) {
@@ -67,13 +65,12 @@ class QuotaMetricsService(
      * Met à jour le quota restant pour une opération/tier/account.
      */
     fun updateQuotaRemaining(operation: String, tier: String, accountId: Long, remaining: Int) {
-        val key = "$operation::$tier::$accountId"
+        val key = "$operation::$tier"
         val gauge = quotaRemainingGauges.computeIfAbsent(key) { _ ->
             val atomicValue = AtomicInteger(remaining)
             Gauge.builder("${METRIC_PREFIX}_quota_remaining", atomicValue) { it.get().toDouble() }
                 .tag("operation", operation)
                 .tag("tier", tier)
-                .tag("account_id", accountId.toString())
                 .description("Remaining quota units for operation")
                 .register(meterRegistry)
             atomicValue

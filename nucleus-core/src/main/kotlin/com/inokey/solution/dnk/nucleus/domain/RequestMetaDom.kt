@@ -18,13 +18,16 @@ data class RequestMetaDom(
     val consentVersion: String,
     val idempotencyKey: UUID? = null
 ) {
+    private val resolvedId: UUID by lazy { correlationId ?: UUID.randomUUID() }
+
     /**
-     * Génère un correlationId si absent.
+     * Retourne le correlationId, en générant un UUID stable si absent.
+     * La même instance retourne toujours la même valeur.
      */
-    fun resolvedCorrelationId(): UUID = correlationId ?: UUID.randomUUID()
+    fun resolvedCorrelationId(): UUID = resolvedId
 
     /**
      * Retourne le correlationId comme String.
      */
-    fun correlationIdString(): String = resolvedCorrelationId().toString()
+    fun correlationIdString(): String = resolvedId.toString()
 }

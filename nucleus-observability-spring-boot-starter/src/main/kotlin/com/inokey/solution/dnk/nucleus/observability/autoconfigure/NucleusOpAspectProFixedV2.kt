@@ -5,7 +5,6 @@ import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
-import org.springframework.stereotype.Component
 import reactor.core.observability.micrometer.Micrometer
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -21,7 +20,6 @@ import java.util.*
  *   endpoint, context, user_id, error_type
  */
 @Aspect
-@Component
 class NucleusOpAspectProFixedV2(
     private val observationRegistry: ObservationRegistry
 ) {
@@ -120,7 +118,7 @@ fun <T : Any> Flux<T>.observedProV2(
         val stableTags = mapOf(
             "endpoint" to endpoint,
             "context" to contextTag,
-            "user_id" to userId,
+            "user_id" to if (userId == "anonymous") "anonymous" else "identified",
             "error_type" to errorType
         ).filterKeys { it in NucleusOpAspectProFixedV2.STANDARD_TAG_KEYS }
         var flux: Flux<T> = this@observedProV2
@@ -170,7 +168,7 @@ fun <T : Any> Mono<T>.observedProV2(
         val stableTags = mapOf(
             "endpoint" to endpoint,
             "context" to contextTag,
-            "user_id" to userId,
+            "user_id" to if (userId == "anonymous") "anonymous" else "identified",
             "error_type" to errorType
         )
         var mono: Mono<T> = this@observedProV2

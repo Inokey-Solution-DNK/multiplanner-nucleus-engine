@@ -2,8 +2,8 @@ package com.inokey.solution.dnk.nucleus.nucleus7
 
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.annotation.AnnotatedElementUtils
-import org.springframework.stereotype.Component
 import org.springframework.web.method.HandlerMethod
 import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping
 import java.time.Instant
@@ -13,10 +13,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.context.ApplicationContext
 
 @ConditionalOnClass(RequestMappingHandlerMapping::class)
-@Component
 class PrincipleRegistry(
     private val applicationContext: ApplicationContext,
-    private val meterRegistry: MeterRegistry
+    private val meterRegistry: MeterRegistry,
+    @Value("\${nucleus7.principle.package-prefix:com.inokey.solution.dnk}") private val packagePrefix: String,
+    @Value("\${nucleus7.principle.ttl-seconds:60}") private val ttlConfigSeconds: Long
 ) {
     // Récupère TOUS les RequestMappingHandlerMapping disponibles via le contexte (évite l'injection ambiguë)
     private val mappingsList: List<RequestMappingHandlerMapping> by lazy {
@@ -25,7 +26,7 @@ class PrincipleRegistry(
 
     @Volatile private var cache: Map<Principle, Set<String>> = emptyMap()
     @Volatile private var lastRefresh: Instant? = null
-    private val ttlSeconds = 60L
+    private val ttlSeconds by lazy { ttlConfigSeconds }
 
     private val endpointGauges = ConcurrentHashMap<Principle, AtomicInteger>()
     private val totalGaugeRef = AtomicInteger(0)
@@ -42,7 +43,7 @@ class PrincipleRegistry(
         mappingsList.forEach { mapping ->
             mapping.handlerMethods.forEach handlerLoop@{ (info, method) ->
                 val beanPackage = method.beanType.packageName
-                if (!beanPackage.startsWith("com.inokey.solution.dnk.multiplanner")) return@handlerLoop
+                if (!beanPackage.startsWith(packagePrefix)) return@handlerLoop
 
                 val principles = extractPrinciples(method)
                 if (principles.isNotEmpty()) {

@@ -1,7 +1,6 @@
 package com.inokey.solution.dnk.nucleus.nucleus7
 
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 
 /**
  * 🔐 Implémentation simple du validateur de consentement.
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Component
  * Pour un système plus avancé (historique, migration de versions, etc.),
  * remplace cette implémentation.
  */
-@Component
 class StaticConsentVersionValidator(
     @Value("\${multiplanner.consent.required-version}") private val required: String
 ) : ConsentVersionValidator {

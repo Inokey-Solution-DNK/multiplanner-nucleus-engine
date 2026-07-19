@@ -44,6 +44,8 @@ object ConstantHeader {
     // ===== INTELLECT – traçabilité / explications =====
     const val TRACE_ID: String = "X-Trace-Id"
     const val CORRELATION_ID: String = "X-Correlation-Id"
+    const val SESSION_ID: String = "X-Session-Id"
+    const val REQUEST_TIMING: String = "X-Request-Timing"
 
     // ===== LOVE – accessibilité / équité =====
     const val USER_CONTEXT: String = "X-User-Context"

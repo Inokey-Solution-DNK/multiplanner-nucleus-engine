@@ -3,19 +3,17 @@ import com.inokey.solution.dnk.nucleus.enum.ConstantHeader
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 import java.util.UUID
+
 /**
- * Nucleus7 ConsentGuard (WebFilter).
- *
- * Bloque toute requete d'ecriture qui necessite un consentement explicite
- * si l'en-tete X-Consent-Version est manquant ou invalide.
+ * @deprecated Use [ConsentGuard] instead. This class is kept for compatibility
+ * and is not auto-registered as a bean.
  */
-@Component
+@Deprecated("Use ConsentGuard instead. Not auto-registered.", level = DeprecationLevel.WARNING)
 class ConsentGuardWebFilter(
     private val consentValidator: ConsentVersionValidator
 ) : WebFilter {
@@ -24,18 +22,17 @@ class ConsentGuardWebFilter(
         val request = exchange.request
         val path = request.path.pathWithinApplication().value()
         val method = request.method.name()
-        val isWriteEndpointNeedingConsent =
-            method == "POST" && path.startsWith("/api/users/register/")
-        if (!isWriteEndpointNeedingConsent) {
+        val isWriteEndpoint = method == "POST" || method == "PUT" || method == "PATCH" || method == "DELETE"
+        if (!isWriteEndpoint) {
             return chain.filter(exchange)
         }
         val version = request.headers.getFirst(ConstantHeader.CONSENT_VERSION)
         if (version.isNullOrBlank()) {
-            log.warn("[CONSENT_GUARD] Missing {} for {} {}", ConstantHeader.CONSENT_VERSION, method, path)
+            log.warn("[CONSENT_GUARD_DEPRECATED] Missing {} for {} {}", ConstantHeader.CONSENT_VERSION, method, path)
             return reject(exchange, HttpStatus.BAD_REQUEST, "CONSENT_MISSING")
         }
         if (!consentValidator.isAccepted(version)) {
-            log.warn("[CONSENT_GUARD] Invalid consent version='{}' for {} {}", version, method, path)
+            log.warn("[CONSENT_GUARD_DEPRECATED] Invalid consent version for {} {}", method, path)
             return reject(exchange, HttpStatus.FORBIDDEN, "CONSENT_INVALID")
         }
         return chain.filter(exchange)
@@ -51,27 +48,13 @@ class ConsentGuardWebFilter(
         val correlationId =
             exchange.request.headers.getFirst(ConstantHeader.CORRELATION_ID)
                 ?: UUID.randomUUID().toString()
-        val details = mutableListOf<String>()
-        when (code) {
-            "CONSENT_MISSING" -> {
-                details.add("Header '${ConstantHeader.CONSENT_VERSION}' manquant ou vide.")
-                details.add("Action: ajoutez le header avec une version valide (ex: v1.0).")
-            }
-            "CONSENT_INVALID" -> {
-                val received = exchange.request.headers.getFirst(ConstantHeader.CONSENT_VERSION)
-                details.add("X-Consent-Version recu: '$received'.")
-                details.add("Action: verifiez la version. Version attendue: v1.0.")
-            }
-            else -> details.add("Requete refusee pour cause de consentement.")
-        }
         val message = when (code) {
-            "CONSENT_MISSING" -> "Consentement manquant (${ConstantHeader.CONSENT_VERSION})."
-            "CONSENT_INVALID" -> "Version de consentement invalide."
-            else -> "Requete refusee pour cause de consentement."
+            "CONSENT_MISSING" -> "Consent header required for write operations."
+            "CONSENT_INVALID" -> "Consent version not accepted."
+            else -> "Request rejected."
         }
         val bufferFactory = response.bufferFactory()
-        val detailsJson = details.joinToString(",") { "\"${it.replace("\"", "\\\"")}\"" }
-        val bytes = """{"code":"$code","message":"$message","correlationId":"$correlationId","details":[$detailsJson]}"""
+        val bytes = """{"code":"$code","message":"$message","correlationId":"$correlationId"}"""
             .toByteArray(Charsets.UTF_8)
         val buffer = bufferFactory.wrap(bytes)
         return response.writeWith(Mono.just(buffer))

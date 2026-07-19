@@ -1,5 +1,6 @@
 package com.inokey.solution.dnk.nucleus.observability
 
+import com.inokey.solution.dnk.nucleus.enum.ConstantHeader
 import org.springframework.boot.context.properties.ConfigurationProperties
 
 /**
@@ -53,8 +54,8 @@ data class NucleusProperties(
         val enabled: Boolean = true,
         val captureRequestBody: Boolean = false,
         val captureResponseBody: Boolean = false,
-        val correlationHeader: String = "X-Correlation-Id",
-        val sessionHeader: String = "X-Session-Id"
+        val correlationHeader: String = ConstantHeader.CORRELATION_ID,
+        val sessionHeader: String = ConstantHeader.SESSION_ID
     )
 
     data class GuardProperties(

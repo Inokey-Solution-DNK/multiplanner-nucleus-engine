@@ -1,0 +1,31 @@
+capability,commonOwner,nucleusOwner,sharedContract,dependencyDirection,duplicateImplementation,decision,evidence
+Correlation ID header,X-Correlation-Id in GlobalExceptionHandler,NucleusHeaders.CORRELATION_ID + NucleusWebFilter,Yes (same header name),Common imports Nucleus Problem but defines own CORRELATION_HEADER,No,KEEP_IN_NUCLEUS,Common uses constant string; Nucleus owns propagation via WebFilter + MDC
+Problem (RFC 9457),Imports and uses nucleus.problem.Problem,Defines Problem data class,Yes (same class),Common -> Nucleus (import),No,KEEP_IN_NUCLEUS,Common GlobalExceptionHandler imports com.inokey.solution.dnk.nucleus.problem.Problem
+Error mapping/handling,GlobalExceptionHandler + ApiException + ErrorPayload + ErrorCode,NucleusJsonErrorHandler + NucleusErrorMapper SPI,Yes (both produce error responses),None (parallel),Yes,COMPATIBILITY_REQUIRED,Common handles ApiException/CommonException; Nucleus handles JSON deserialization errors — different scopes
+Consent validation,No,ConsentGuard + ConsentGuardWebFilter + ConsentVersionValidator + StaticConsentVersionValidator,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no consent capability
+Safety shield,No,SafetyShield + SafetyProps,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no safety capability
+Latency budget,No,LatencyBudgetFilter + LatencyProps,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no latency budget
+Principles (Nucleus7),No,Principle/Principles/PrincipleNote/PrincipleResolver/PrincipleRegistry,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no principles
+Observability/Metrics,No,NucleusOpAspectProFixedV2 + QuotaMetricsService + NucleusOpsInfoContributor,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no metrics
+Operation catalogue,No,MultiplannerOperation enum (150+ ops),No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no operation catalogue
+WebFilter (correlation/MDC),No,NucleusWebFilter,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no WebFilter
+AOP instrumentation,No,NucleusOpAspectProFixedV2 (@Aspect),No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no AOP
+API versioning headers,No,MultiPlannerSignatureFilter + MultiPlannerSignatureLogger,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no versioning filter
+Contract introspection,No,ContractIntrospector,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no contract introspection
+JSON schema validation,No,JsonSchemaValidationFilter (stub),No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no schema validation
+Request metadata DOM,No,RequestMetaDom,No,Nucleus only,No,KEEP_IN_NUCLEUS,Common has no RequestMetaDom
+Auth enums (AuthProvider/OriginIdp),No,AuthProvider + OriginIdp,No,Nucleus only,No,KEEP_IN_NUCLEUS,Will be used by Identity module
+Business enums (AccountType/Audience/PolicyEffect),No,AccountType + Audience + PolicyEffect,No,Nucleus only,No,KEEP_IN_NUCLEUS,
+Project catalogue,No,MultiplannerProject + ProjectDescriptor + NotificationType,No,Nucleus only,No,KEEP_IN_NUCLEUS,
+SPI interfaces,No,NucleusErrorMapper + NucleusObservationContributor + NucleusOperationResolver,No,Nucleus only,No,KEEP_IN_NUCLEUS,Extension points for consuming apps
+Auto-configuration,No,NucleusObservabilityAutoConfiguration + Nucleus7Config,No,Nucleus only,No,KEEP_IN_NUCLEUS,Spring Boot auto-config
+Configuration properties,No,NucleusProperties + ConsentProperties + SafetyProps + LatencyProps,No,Nucleus only,No,KEEP_IN_NUCLEUS,
+Cryptography/Hashing,SecureHasher + SecureHashService,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus has no crypto
+Cache (Redis),RedisJsonCacheService,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus has no cache
+Mail system,EmailTemplateRenderer + EmailContentBlock + etc,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus has no mail
+JSON utilities,Jsons,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus uses Jackson directly
+Time/Clock,ClockProvider,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus has no clock abstraction
+IdCodec,IdCodec,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus has no ID encoding
+R2DBC bases,R2DBC base classes,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus has no R2DBC
+API exceptions,ApiException + subtypes + ErrorCode,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus has no ApiException hierarchy
+Mono error extensions,MonoErrorExtensions,No,N/A,Common only,No,KEEP_IN_COMMON,Nucleus has no Mono extensions

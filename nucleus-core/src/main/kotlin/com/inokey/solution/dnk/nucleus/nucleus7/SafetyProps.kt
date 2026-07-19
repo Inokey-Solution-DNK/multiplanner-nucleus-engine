@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties("nucleus7.safety")
 data class SafetyProps(
-    val enabled: Boolean = true,
+    val enabled: Boolean = false,
     val minScore: Double = 0.80,
-    val enforcePaths: List<String> = emptyList() // nouveaux chemins à toujours vérifier
+    val enforcePaths: List<String> = emptyList()
 )
