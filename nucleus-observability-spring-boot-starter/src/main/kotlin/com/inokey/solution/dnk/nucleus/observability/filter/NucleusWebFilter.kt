@@ -3,6 +3,7 @@ package com.inokey.solution.dnk.nucleus.observability.filter
 import com.inokey.solution.dnk.nucleus.core.NucleusFilterOrder
 import com.inokey.solution.dnk.nucleus.enum.ConstantHeader
 import com.inokey.solution.dnk.nucleus.observability.NucleusProperties
+import com.inokey.solution.dnk.nucleus.observability.context.NucleusContextKeys
 import com.inokey.solution.dnk.nucleus.spi.NucleusObservationContributor
 import com.inokey.solution.dnk.nucleus.spi.NucleusOperationResolver
 import org.slf4j.LoggerFactory
@@ -16,36 +17,34 @@ import reactor.core.publisher.Mono
 import java.util.UUID
 
 /**
- * WebFilter réactif Nucleus — intercepte chaque requête HTTP pour :
+ * Filtre WebFlux transversal Nucleus.
  *
- * 1. Propager / générer le X-Correlation-Id
- * 2. Injecter le correlation id dans le Reactor Context (pas MDC sur thread non-blocking)
- * 3. Résoudre le code d'opération Nucleus (SPI)
- * 4. Enrichir les tags d'observabilité (SPI)
- * 5. Mesurer le temps de traitement
- * 6. Ajouter X-Request-Timing dans la réponse
- *
- * MDC is set in doOnEach/onNext and cleared in doFinally to avoid leakage on reactive thread shifts.
+ * Il est l'unique propriétaire HTTP de `X-Correlation-Id` et de la lecture de
+ * `Idempotency-Key`. Les contrôleurs n'ont pas à recevoir ces paramètres.
  */
 @Order(NucleusFilterOrder.NUCLEUS_WEB_FILTER)
 class NucleusWebFilter(
     private val properties: NucleusProperties,
     private val operationResolver: NucleusOperationResolver?,
-    private val contributors: List<NucleusObservationContributor>
+    private val contributors: List<NucleusObservationContributor>,
 ) : WebFilter {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
-        if (!properties.observability.enabled) {
-            return chain.filter(exchange)
-        }
-
         val request = exchange.request
         val start = System.nanoTime()
 
-        val correlationId = request.headers.getFirst(properties.observability.correlationHeader)
+        val correlationId = request.headers
+            .getFirst(properties.observability.correlationHeader)
+            ?.trim()
+            ?.takeIf(String::isNotEmpty)
             ?: UUID.randomUUID().toString()
+
+        val idempotencyKey = request.headers
+            .getFirst(ConstantHeader.IDEMPOTENCY_KEY)
+            ?.trim()
+            ?.takeIf(String::isNotEmpty)
 
         val path = request.uri.path
         val method = request.method.name()
@@ -54,59 +53,86 @@ class NucleusWebFilter(
         val tags = mutableMapOf(
             "app" to properties.applicationCode,
             "operation" to operation,
-            "method" to method
+            "method" to method,
         )
         val queryParams = request.queryParams.toSingleValueMap()
-        contributors.forEach { it.contribute(tags, path, method, queryParams) }
+        contributors.forEach { contributor ->
+            contributor.contribute(tags, path, method, queryParams)
+        }
 
-        val mutatedRequest: ServerHttpRequest = exchange.request.mutate()
+        val mutatedRequest: ServerHttpRequest = request.mutate()
             .header(ConstantHeader.CORRELATION_ID, correlationId)
             .build()
-
         val mutatedExchange = exchange.mutate().request(mutatedRequest).build()
+
+        mutatedExchange.response.headers.set(
+            ConstantHeader.CORRELATION_ID,
+            correlationId,
+        )
 
         mutatedExchange.response.beforeCommit {
             val elapsedMs = (System.nanoTime() - start) / 1_000_000
+
             try {
-                mutatedExchange.response.headers.set(ConstantHeader.REQUEST_TIMING, "${elapsedMs}ms")
-                if (mutatedExchange.response.headers[ConstantHeader.CORRELATION_ID] == null) {
-                    mutatedExchange.response.headers.set(ConstantHeader.CORRELATION_ID, correlationId)
+                if (properties.observability.enabled) {
+                    mutatedExchange.response.headers.set(
+                        ConstantHeader.REQUEST_TIMING,
+                        "${elapsedMs}ms",
+                    )
                 }
-            } catch (e: UnsupportedOperationException) {
+            } catch (exception: UnsupportedOperationException) {
                 log.trace(
-                    "Nucleus: headers already locked [{} {} {}ms] — {}",
-                    method, path, elapsedMs, e.message
+                    "Nucleus response headers already committed for {} {}: {}",
+                    method,
+                    path,
+                    exception.javaClass.simpleName,
                 )
             }
+
             Mono.empty()
         }
 
-        return chain.filter(mutatedExchange)
-            .contextWrite { ctx ->
-                ctx.put("nucleus.correlationId", correlationId)
-                    .put("nucleus.operation", operation)
-                    .put("nucleus.path", path)
-                    .put("nucleus.method", method)
+        var pipeline = chain.filter(mutatedExchange)
+            .contextWrite { context ->
+                var enriched = context
+                    .put(NucleusContextKeys.CORRELATION_ID, correlationId)
+                    .put(NucleusContextKeys.OPERATION, operation)
+                    .put(NucleusContextKeys.PATH, path)
+                    .put(NucleusContextKeys.METHOD, method)
+
+                if (idempotencyKey != null) {
+                    enriched = enriched.put(NucleusContextKeys.IDEMPOTENCY_KEY, idempotencyKey)
+                }
+                enriched
             }
-            .doOnEach { signal ->
-                MDC.put("correlationId", correlationId)
-                MDC.put("application", properties.applicationCode)
-                MDC.put("operation", operation)
-            }
-            .doFinally {
-                val elapsedMs = (System.nanoTime() - start) / 1_000_000
-                try {
+
+        if (properties.observability.enabled) {
+            pipeline = pipeline
+                .doOnEach {
                     MDC.put("correlationId", correlationId)
                     MDC.put("application", properties.applicationCode)
                     MDC.put("operation", operation)
-                    log.debug(
-                        "Nucleus [{}] {} {} — {}ms — tags={}",
-                        operation, method, path, elapsedMs, tags
-                    )
-                } finally {
-                    MDC.clear()
                 }
-            }
+                .doFinally {
+                    val elapsedMs = (System.nanoTime() - start) / 1_000_000
+                    try {
+                        MDC.put("correlationId", correlationId)
+                        MDC.put("application", properties.applicationCode)
+                        MDC.put("operation", operation)
+                        log.debug(
+                            "Nucleus operation={} method={} path={} durationMs={} tags={}",
+                            operation,
+                            method,
+                            path,
+                            elapsedMs,
+                            tags,
+                        )
+                    } finally {
+                        MDC.clear()
+                    }
+                }
+        }
+
+        return pipeline
     }
 }
-

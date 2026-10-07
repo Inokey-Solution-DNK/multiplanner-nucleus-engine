@@ -1,17 +1,22 @@
 package com.inokey.solution.dnk.nucleus.observability.autoconfigure
 
 /**
- * Annotation pour marquer une méthode comme une opération métier observable.
- * L'aspect [NucleusOpAspect] interceptera cette annotation pour instrumenter
- * automatiquement le Mono/Flux retourné.
+ * Déclare la politique technique d'une opération publique MultiPlanner.
  *
- * @param value L'opération du catalogue [MultiplannerOperation].
- * @param extraTags Tags additionnels au format `["key1=value1", "key2=value2"]`.
+ * Une seule annotation matérialise :
+ * - l'opération observable ;
+ * - la politique de corrélation ;
+ * - la politique d'idempotence.
+ *
+ * La syntaxe historique `@NucleusOp(MultiplannerOperation.X)` reste valide
+ * et conserve un comportement non bloquant hors contexte HTTP. Les routes HTTP
+ * doivent déclarer explicitement leur politique de corrélation.
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class NucleusOp(
     val value: MultiplannerOperation,
-    val extraTags: Array<String> = []
+    val correlation: NucleusCorrelationMode = NucleusCorrelationMode.NONE,
+    val idempotency: NucleusIdempotencyMode = NucleusIdempotencyMode.NONE,
+    val extraTags: Array<String> = [],
 )
-

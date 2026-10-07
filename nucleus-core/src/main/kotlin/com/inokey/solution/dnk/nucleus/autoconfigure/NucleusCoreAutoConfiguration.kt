@@ -14,7 +14,6 @@ import com.inokey.solution.dnk.nucleus.nucleus7.NucleusSafetyScoreResolver
 import com.inokey.solution.dnk.nucleus.nucleus7.PrincipleRegistry
 import com.inokey.solution.dnk.nucleus.nucleus7.SafetyProps
 import com.inokey.solution.dnk.nucleus.nucleus7.SafetyShield
-import com.inokey.solution.dnk.nucleus.nucleus7.StaticConsentVersionValidator
 import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
@@ -39,7 +38,6 @@ import org.springframework.web.reactive.result.method.annotation.RequestMappingH
  *   - MultiPlannerSignatureFilter (reactive web app)
  *   - PrincipleRegistry (si RequestMappingHandlerMapping present)
  *   - ContractIntrospector (always)
- *   - StaticConsentVersionValidator (si multiplanner.consent.required-version set)
  */
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
@@ -109,11 +107,4 @@ class NucleusCoreAutoConfiguration {
     fun contractIntrospector(
         @org.springframework.beans.factory.annotation.Value("\${multiplanner.contract.model-package:com.inokey.solution.dnk.multiplanner.contract.model}") modelPackage: String
     ): ContractIntrospector = ContractIntrospector(modelPackage)
-
-    @Bean
-    @ConditionalOnMissingBean(ConsentVersionValidator::class)
-    @ConditionalOnProperty(prefix = "multiplanner.consent", name = ["required-version"])
-    fun staticConsentVersionValidator(
-        @org.springframework.beans.factory.annotation.Value("\${multiplanner.consent.required-version}") required: String
-    ): StaticConsentVersionValidator = StaticConsentVersionValidator(required)
 }

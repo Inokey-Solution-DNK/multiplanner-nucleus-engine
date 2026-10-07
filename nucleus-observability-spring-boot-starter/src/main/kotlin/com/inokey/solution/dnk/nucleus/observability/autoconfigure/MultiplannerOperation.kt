@@ -90,6 +90,24 @@ enum class MultiplannerOperation(val module: String, val action: String) {
     /** Whoami / snapshot utilisateur courant (auth module). */
     MULTIPLANNER_AUTH_WHOAMI("auth", "whoami"),
 
+    /** Lecture du compte humain central Identity. */
+    MULTIPLANNER_IDENTITY_GET_CURRENT_ACCOUNT("identity", "getCurrentAccount"),
+
+    /** Lecture du profil personnel Identity. */
+    MULTIPLANNER_IDENTITY_GET_CURRENT_PROFILE("identity", "getCurrentProfile"),
+
+    /** Mise à jour du profil personnel Identity. */
+    MULTIPLANNER_IDENTITY_UPDATE_PROFILE("identity", "updateProfile"),
+
+    /** Liste des contextes Identity accessibles. */
+    MULTIPLANNER_IDENTITY_LIST_CONTEXTS("identity", "listContexts"),
+
+    /** Lecture du contexte Identity actif. */
+    MULTIPLANNER_IDENTITY_GET_CONTEXT("identity", "getContext"),
+
+    /** Sélection du contexte Identity actif. */
+    MULTIPLANNER_IDENTITY_SELECT_CONTEXT("identity", "selectContext"),
+
     /** Démarrage liaison d'identité (identity linking). */
     MULTIPLANNER_IDENTITY_LINK_START("auth", "identityLinkStart"),
 

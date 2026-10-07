@@ -2,60 +2,41 @@ package com.inokey.solution.dnk.nucleus.observability
 
 import com.inokey.solution.dnk.nucleus.enum.ConstantHeader
 import org.springframework.boot.context.properties.ConfigurationProperties
+import java.time.Duration
 
 /**
- * Propriétés de configuration Nucleus — exposées via application.yml.
+ * Configuration publique du starter Nucleus.
  *
- * nucleus:
- *   enabled: true
- *   application-code: pertinence-engine
- *   log-level: DEBUG
- *   latency-budget-ms: 5000
- *   default-safety-score-threshold: 0.80
- *   tracing-enabled: true
- *   metrics-enabled: true
- *   observability:
- *     enabled: true
- *     capture-request-body: false
- *     capture-response-body: false
- *     correlation-header: X-Correlation-Id
- *     session-header: X-Session-Id
- *   guard:
- *     consent-check-enabled: true
- *     safety-check-enabled: false
- *     safety-score-threshold: 0.80
- *     latency-budget-ms: 5000
- *     metrics-enabled: true
+ * La corrélation est active par défaut. L'idempotence reste désactivée tant
+ * qu'un profil consommateur ne l'active pas explicitement et ne fournit pas
+ * un `NucleusIdempotencyScopeResolver`.
  */
 @ConfigurationProperties(prefix = "nucleus")
 data class NucleusProperties(
     val enabled: Boolean = true,
     val applicationCode: String = "unknown",
-
-    /** Log level for Nucleus components: DEBUG, INFO, WARN, ERROR */
     val logLevel: String = "INFO",
-
-    /** Default latency budget in milliseconds (LatencyBudgetFilter). */
     val latencyBudgetMs: Long = 5000L,
-
-    /** Minimum safety score threshold (SafetyShield). */
     val defaultSafetyScoreThreshold: Double = 0.80,
-
-    /** Enable OpenTelemetry tracing (NucleusOpAspect). */
     val tracingEnabled: Boolean = true,
-
-    /** Enable Micrometer metrics. */
     val metricsEnabled: Boolean = true,
-
     val observability: ObservabilityProperties = ObservabilityProperties(),
-    val guard: GuardProperties = GuardProperties()
+    val idempotency: IdempotencyProperties = IdempotencyProperties(),
+    val guard: GuardProperties = GuardProperties(),
 ) {
     data class ObservabilityProperties(
         val enabled: Boolean = true,
         val captureRequestBody: Boolean = false,
         val captureResponseBody: Boolean = false,
         val correlationHeader: String = ConstantHeader.CORRELATION_ID,
-        val sessionHeader: String = ConstantHeader.SESSION_ID
+        val sessionHeader: String = ConstantHeader.SESSION_ID,
+    )
+
+    data class IdempotencyProperties(
+        val enabled: Boolean = false,
+        val ttl: Duration = Duration.ofHours(24),
+        val maxEntries: Int = 10_000,
+        val maxKeyLength: Int = 160,
     )
 
     data class GuardProperties(
@@ -63,6 +44,6 @@ data class NucleusProperties(
         val safetyCheckEnabled: Boolean = false,
         val safetyScoreThreshold: Double = 0.80,
         val latencyBudgetMs: Long = 5000L,
-        val metricsEnabled: Boolean = true
+        val metricsEnabled: Boolean = true,
     )
 }

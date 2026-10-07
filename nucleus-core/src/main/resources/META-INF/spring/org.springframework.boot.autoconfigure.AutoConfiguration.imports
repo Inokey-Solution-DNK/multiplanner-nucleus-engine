@@ -1,1 +1,2 @@
 com.inokey.solution.dnk.nucleus.autoconfigure.NucleusCoreAutoConfiguration
+com.inokey.solution.dnk.nucleus.autoconfigure.NucleusConsentVersionValidatorAutoConfiguration

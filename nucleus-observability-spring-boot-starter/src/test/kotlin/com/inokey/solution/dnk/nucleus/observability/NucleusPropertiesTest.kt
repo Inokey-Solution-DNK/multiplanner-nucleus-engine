@@ -29,6 +29,14 @@ class NucleusPropertiesTest {
     }
 
     @Test
+    fun `idempotency is opt-in by default`() {
+        val idempotency = NucleusProperties.IdempotencyProperties()
+        assertTrue(!idempotency.enabled)
+        assertEquals(10_000, idempotency.maxEntries)
+        assertEquals(160, idempotency.maxKeyLength)
+    }
+
+    @Test
     fun `guard defaults`() {
         val guard = NucleusProperties.GuardProperties()
         assertTrue(guard.consentCheckEnabled)
