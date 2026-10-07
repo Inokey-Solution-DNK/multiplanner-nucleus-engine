@@ -41,7 +41,8 @@ import org.springframework.web.reactive.result.method.annotation.RequestMappingH
  *   - ContractIntrospector (always)
  *   - StaticConsentVersionValidator (si multiplanner.consent.required-version set)
  */
-@Configuration
+// Core has no Kotlin Spring all-open plugin; its final configuration needs no bean proxies.
+@Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @EnableConfigurationProperties(
     ConsentProperties::class,
